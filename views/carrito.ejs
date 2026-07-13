@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: "Carrito — URBE" }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main>
+  <section class="carrito">
+    <h1 class="section__title">Tu carrito</h1>
+
+    <% if (items.length === 0) { %>
+    <p class="carrito__vacio">Tu carrito está vacío. <a href="/">Ir al catálogo</a>.</p>
+    <% } else { %>
+    <div class="tabla-carrito">
+      <% items.forEach(function(item) { %>
+      <div class="fila-carrito">
+        <div class="fila-carrito__muestra" style="background-color: <%= item.colorMuestra %>;"></div>
+        <div class="fila-carrito__info">
+          <h4><%= item.nombre %></h4>
+          <span>Talla <%= item.talla %></span>
+          <% if (item.cantidadSolicitada > item.stockDisponible) { %>
+          <span class="fila-carrito__aviso">Solo quedan <%= item.stockDisponible %> — cantidad ajustada</span>
+          <% } %>
+        </div>
+        <form method="post" action="/carrito/actualizar" class="fila-carrito__cantidad">
+          <input type="hidden" name="producto_id" value="<%= item.productoId %>">
+          <input type="hidden" name="talla" value="<%= item.talla %>">
+          <input type="number" name="cantidad" value="<%= item.cantidad %>" min="1" max="<%= item.stockDisponible %>">
+          <button type="submit" class="btn btn--chico">Actualizar</button>
+        </form>
+        <span class="fila-carrito__subtotal"><%= formatoPrecio(item.subtotalCentavos) %></span>
+        <form method="post" action="/carrito/eliminar">
+          <input type="hidden" name="producto_id" value="<%= item.productoId %>">
+          <input type="hidden" name="talla" value="<%= item.talla %>">
+          <button type="submit" class="btn btn--chico btn--peligro">Eliminar</button>
+        </form>
+      </div>
+      <% }); %>
+    </div>
+
+    <div class="carrito__total">
+      <span>Total</span>
+      <strong><%= formatoPrecio(totalCentavos) %></strong>
+    </div>
+    <a href="/checkout" class="btn btn--primary">Continuar a pago</a>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

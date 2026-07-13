@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: urbe-streetwear
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: URBE_SECRET_KEY
+        generateValue: true
+      - key: URBE_ADMIN_PASSWORD
+        value: urbe2026

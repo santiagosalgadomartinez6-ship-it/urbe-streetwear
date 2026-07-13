@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: "URBE — Streetwear" }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main>
+  <section class="hero">
+    <p class="hero__eyebrow">Streetwear urbano</p>
+    <h1 class="hero__title">VISTE SIN<br>PEDIR PERMISO</h1>
+    <p class="hero__subtitle">Playeras, hoodies, gorras y tenis pensados para la calle. Piezas limitadas, sin relleno.</p>
+    <a href="#catalogo" class="btn btn--primary">Ver catálogo</a>
+  </section>
+
+  <section class="catalogo" id="catalogo">
+    <div class="filtros">
+      <a href="/" class="chip <%= !categoriaActiva ? 'chip--activo' : '' %>">Todo</a>
+      <% categorias.forEach(function(cat) { %>
+        <a href="/?categoria=<%= encodeURIComponent(cat) %>" class="chip <%= categoriaActiva === cat ? 'chip--activo' : '' %>"><%= cat %></a>
+      <% }); %>
+    </div>
+
+    <div class="grid-productos">
+      <% productos.forEach(function(p) { %>
+      <a href="/producto/<%= p.id %>" class="tarjeta-producto">
+        <div class="tarjeta-producto__muestra" style="background-color: <%= p.color_muestra %>;">
+          <span class="tarjeta-producto__categoria"><%= p.categoria %></span>
+        </div>
+        <div class="tarjeta-producto__info">
+          <h3><%= p.nombre %></h3>
+          <span class="tarjeta-producto__precio"><%= formatoPrecio(p.precio_centavos) %></span>
+        </div>
+      </a>
+      <% }); %>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

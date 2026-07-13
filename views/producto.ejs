@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: producto.nombre + " — URBE" }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main>
+  <section class="ficha-producto">
+    <div class="ficha-producto__muestra" style="background-color: <%= producto.color_muestra %>;">
+      <span class="ficha-producto__categoria"><%= producto.categoria %></span>
+    </div>
+
+    <div class="ficha-producto__info">
+      <h1><%= producto.nombre %></h1>
+      <p class="ficha-producto__precio"><%= formatoPrecio(producto.precio_centavos) %></p>
+      <p class="ficha-producto__descripcion"><%= producto.descripcion %></p>
+
+      <form method="post" action="/carrito/agregar" class="form-agregar">
+        <input type="hidden" name="producto_id" value="<%= producto.id %>">
+
+        <label for="talla">Talla</label>
+        <select id="talla" name="talla" required>
+          <% variantes.forEach(function(v) { %>
+          <option value="<%= v.talla %>" data-stock="<%= v.stock %>" <%= v.stock <= 0 ? 'disabled' : '' %>>
+            <%= v.talla %><%= v.stock <= 0 ? ' — agotado' : ` — ${v.stock} disponibles` %>
+          </option>
+          <% }); %>
+        </select>
+
+        <label for="cantidad">Cantidad</label>
+        <input type="number" id="cantidad" name="cantidad" value="1" min="1" max="8">
+
+        <button type="submit" class="btn btn--primary">Agregar al carrito</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

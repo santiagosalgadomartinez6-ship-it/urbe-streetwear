@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: "Pedido confirmado — URBE" }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main>
+  <section class="confirmacion">
+    <div class="tarjeta-confirmacion">
+      <span class="tarjeta-confirmacion__check">✓</span>
+      <h1>¡Pedido confirmado!</h1>
+      <p class="confirmacion__folio">Folio #<%= pedido.id %></p>
+
+      <div class="checkout__resumen">
+        <% pedido.items.forEach(function(item) { %>
+        <div class="checkout__linea">
+          <span><%= item.nombre_producto %> (<%= item.talla %>) × <%= item.cantidad %></span>
+          <span><%= formatoPrecio(item.precio_unitario_centavos * item.cantidad) %></span>
+        </div>
+        <% }); %>
+        <div class="checkout__linea checkout__linea--total">
+          <span>Total</span>
+          <span><%= formatoPrecio(pedido.total_centavos) %></span>
+        </div>
+      </div>
+
+      <p class="confirmacion__nota">Se enviará a <%= pedido.direccion %>, <%= pedido.ciudad %>. Método de pago: <%= pedido.metodo_pago %>.</p>
+      <a href="/" class="btn btn--primary">Seguir comprando</a>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

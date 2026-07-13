@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: "Checkout — URBE" }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main>
+  <section class="checkout">
+    <h1 class="section__title">Finalizar compra</h1>
+
+    <div class="checkout__grid">
+      <form method="post" action="/checkout" class="form-reserva">
+        <label for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" required>
+
+        <label for="telefono">Teléfono</label>
+        <input type="tel" id="telefono" name="telefono" required>
+
+        <label for="email">Correo</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="direccion">Dirección</label>
+        <input type="text" id="direccion" name="direccion" required placeholder="Calle, número, colonia">
+
+        <label for="ciudad">Ciudad</label>
+        <input type="text" id="ciudad" name="ciudad" required>
+
+        <label for="codigo_postal">Código postal</label>
+        <input type="text" id="codigo_postal" name="codigo_postal" required>
+
+        <label for="metodo_pago">Método de pago</label>
+        <select id="metodo_pago" name="metodo_pago" required>
+          <option value="Tarjeta">Tarjeta de crédito/débito</option>
+          <option value="Transferencia">Transferencia bancaria</option>
+          <option value="Contra entrega">Pago contra entrega</option>
+        </select>
+
+        <button type="submit" class="btn btn--primary">Confirmar pedido</button>
+      </form>
+
+      <div class="checkout__resumen">
+        <h3>Resumen</h3>
+        <% items.forEach(function(item) { %>
+        <div class="checkout__linea">
+          <span><%= item.nombre %> (<%= item.talla %>) × <%= item.cantidad %></span>
+          <span><%= formatoPrecio(item.subtotalCentavos) %></span>
+        </div>
+        <% }); %>
+        <div class="checkout__linea checkout__linea--total">
+          <span>Total</span>
+          <span><%= formatoPrecio(totalCentavos) %></span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

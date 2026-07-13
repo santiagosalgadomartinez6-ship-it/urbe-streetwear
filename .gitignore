@@ -1,0 +1,4 @@
+node_modules/
+urbe.db
+*.log
+.env

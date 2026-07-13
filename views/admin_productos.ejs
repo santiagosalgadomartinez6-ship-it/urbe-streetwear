@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: "Inventario — URBE" }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main>
+  <section class="admin-dashboard">
+    <div class="admin-dashboard__header">
+      <h1 class="section__title">Inventario</h1>
+      <div class="admin-dashboard__acciones">
+        <a href="/admin" class="btn btn--chico">Pedidos</a>
+        <a href="/admin/logout" class="btn btn--chico">Cerrar sesión</a>
+      </div>
+    </div>
+
+    <div class="tabla-admin-wrap">
+      <table class="tabla-admin">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Stock por talla</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% productos.forEach(function(p) { %>
+          <tr>
+            <td><%= p.nombre %></td>
+            <td><%= p.categoria %></td>
+            <td><%= formatoPrecio(p.precio_centavos) %></td>
+            <td>
+              <% p.variantes.forEach(function(v) { %>
+              <span class="pill-stock <%= v.stock <= 0 ? 'pill-stock--agotado' : '' %>"><%= v.talla %>: <%= v.stock %></span>
+              <% }); %>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>

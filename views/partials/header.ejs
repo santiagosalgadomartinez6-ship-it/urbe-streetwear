@@ -1,0 +1,19 @@
+<header class="nav">
+  <a href="/" class="nav__brand">URBE</a>
+  <nav class="nav__links">
+    <a href="/?categoria=Playeras">Playeras</a>
+    <a href="/?categoria=Hoodies">Hoodies</a>
+    <a href="/?categoria=Gorras">Gorras</a>
+    <a href="/?categoria=Tenis">Tenis</a>
+    <a href="/carrito" class="nav__carrito">
+      Carrito
+      <% if (totalCarrito > 0) { %><span class="nav__badge"><%= totalCarrito %></span><% } %>
+    </a>
+  </nav>
+</header>
+
+<% if (flash) { %>
+<div class="flash-stack">
+  <div class="flash flash--<%= flash.tipo %>"><%= flash.mensaje %></div>
+</div>
+<% } %>

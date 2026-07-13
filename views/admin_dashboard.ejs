@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: "Panel admin — URBE" }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main>
+  <section class="admin-dashboard">
+    <div class="admin-dashboard__header">
+      <h1 class="section__title">Pedidos</h1>
+      <div class="admin-dashboard__acciones">
+        <a href="/admin/productos" class="btn btn--chico">Inventario</a>
+        <a href="/admin/logout" class="btn btn--chico">Cerrar sesión</a>
+      </div>
+    </div>
+
+    <div class="stats stats--admin">
+      <div class="stats__item"><strong><%= pedidos.length %></strong><span>pedidos totales</span></div>
+      <div class="stats__item"><strong><%= formatoPrecio(totalVentasCentavos) %></strong><span>ventas acumuladas</span></div>
+    </div>
+
+    <div class="tabla-admin-wrap">
+      <table class="tabla-admin">
+        <thead>
+          <tr>
+            <th>Folio</th>
+            <th>Cliente</th>
+            <th>Contacto</th>
+            <th>Productos</th>
+            <th>Total</th>
+            <th>Pago</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pedidos.forEach(function(p) { %>
+          <tr class="<%= p.estado === 'cancelado' ? 'fila--cancelada' : '' %>">
+            <td>#<%= p.id %></td>
+            <td><%= p.nombre_cliente %></td>
+            <td><%= p.telefono %><br><%= p.email %></td>
+            <td>
+              <details>
+                <summary>Ver</summary>
+                <% p.items.forEach(function(item) { %>
+                <div><%= item.nombre_producto %> (<%= item.talla %>) × <%= item.cantidad %></div>
+                <% }); %>
+              </details>
+            </td>
+            <td><%= formatoPrecio(p.total_centavos) %></td>
+            <td><%= p.metodo_pago %></td>
+            <td><%= p.creado_en.slice(0, 10) %></td>
+            <td>
+              <form method="post" action="/admin/pedidos/<%= p.id %>/estado" class="form-estado">
+                <select name="estado" onchange="this.form.submit()">
+                  <% ["pendiente", "enviado", "entregado", "cancelado"].forEach(function(estado) { %>
+                  <option value="<%= estado %>" <%= p.estado === estado ? "selected" : "" %>><%= estado %></option>
+                  <% }); %>
+                </select>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+          <% if (pedidos.length === 0) { %>
+          <tr><td colspan="8">Todavía no hay pedidos.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>
