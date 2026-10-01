@@ -1,4 +1,5 @@
 const path = require("node:path");
+const crypto = require("node:crypto");
 const express = require("express");
 const session = require("express-session");
 const db = require("./db");
@@ -7,7 +8,9 @@ db.init();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.URBE_ADMIN_PASSWORD || "urbe2026";
+// La contraseña del panel solo viene de una variable de entorno: el repositorio es
+// público, así que nunca va escrita aquí ni en render.yaml. Sin ella el panel no abre.
+const ADMIN_PASSWORD = process.env.URBE_PANEL_PASSWORD || "";
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -41,6 +44,15 @@ function contarItemsCarrito(carrito) {
 
 function flash(req, tipo, mensaje) {
   req.session.flash = { tipo, mensaje };
+}
+
+function contrasenaValida(recibida) {
+  // Solo texto: con express.urlencoded({ extended: true }) el campo puede llegar como
+  // objeto o arreglo (password[toString]=x), y String() sobre eso truena.
+  if (typeof recibida !== "string") return false;
+  const esperada = Buffer.from(ADMIN_PASSWORD);
+  const entrante = Buffer.from(recibida);
+  return esperada.length === entrante.length && crypto.timingSafeEqual(esperada, entrante);
 }
 
 function detalleCarrito(carrito) {
@@ -199,7 +211,11 @@ app.get("/admin/login", (req, res) => {
 });
 
 app.post("/admin/login", (req, res) => {
-  if (req.body.password === ADMIN_PASSWORD) {
+  if (!ADMIN_PASSWORD) {
+    flash(req, "error", "El panel está desactivado: falta configurar su contraseña en el servidor.");
+    return res.redirect("/admin/login");
+  }
+  if (contrasenaValida(req.body.password)) {
     req.session.admin = true;
     return res.redirect("/admin");
   }

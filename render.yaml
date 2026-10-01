@@ -8,5 +8,7 @@ services:
     envVars:
       - key: URBE_SECRET_KEY
         generateValue: true
-      - key: URBE_ADMIN_PASSWORD
-        value: urbe2026
+      # Contraseña del panel: la genera Render y se consulta en Environment.
+      # No escribirla aquí: este repositorio es público.
+      - key: URBE_PANEL_PASSWORD
+        generateValue: true

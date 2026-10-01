@@ -23,7 +23,7 @@ npm start
 Abre `http://127.0.0.1:3000/`.
 
 El panel de administración está en `http://127.0.0.1:3000/admin/login`.
-Contraseña de prueba: `urbe2026` (definida en `server.js`, cámbiala con la variable de entorno `URBE_ADMIN_PASSWORD` antes de usar esto con un cliente real).
+La contraseña del panel sale de la variable de entorno `URBE_PANEL_PASSWORD`; si no existe, el panel no deja entrar. Para probarlo en tu computadora, en PowerShell: `$env:URBE_PANEL_PASSWORD = "la-que-quieras"` antes de `npm start`. En Render la genera el propio Render (ver `render.yaml`) y se consulta en **Environment**. Nunca la escribas en el código: el repositorio es público.
 
 ## Estructura del proyecto
 
@@ -47,4 +47,4 @@ urbe/
 
 - Los productos y tallas semilla están en `db.js`, función `init()` — cámbialos por el catálogo real.
 - Los datos de contacto están hardcodeados en `views/partials/footer.ejs`.
-- Para producción: mover `URBE_SECRET_KEY` y `URBE_ADMIN_PASSWORD` a variables de entorno reales, usar un store de sesión persistente (no la MemoryStore por defecto de `express-session`), y agregar una pasarela de pago real (Stripe/Mercado Pago) en vez del selector de método de pago de demo.
+- Para producción: mover `URBE_SECRET_KEY` a una variable de entorno real (la contraseña del panel ya está en `URBE_PANEL_PASSWORD`), usar un store de sesión persistente (no la MemoryStore por defecto de `express-session`), y agregar una pasarela de pago real (Stripe/Mercado Pago) en vez del selector de método de pago de demo.
