@@ -4,7 +4,7 @@
 <body>
 <%- include('partials/header') %>
 
-<main>
+<main id="main-contenido">
   <section class="admin-dashboard">
     <div class="admin-dashboard__header">
       <h1 class="section__title">Inventario</h1>
@@ -18,10 +18,10 @@
       <table class="tabla-admin">
         <thead>
           <tr>
-            <th>Producto</th>
-            <th>Categoría</th>
-            <th>Precio</th>
-            <th>Stock por talla</th>
+            <th scope="col">Producto</th>
+            <th scope="col">Categoría</th>
+            <th scope="col">Precio</th>
+            <th scope="col">Stock por talla</th>
           </tr>
         </thead>
         <tbody>

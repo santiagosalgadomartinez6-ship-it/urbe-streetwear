@@ -4,14 +4,19 @@
   "description": "Tienda en línea de portafolio — catálogo, carrito, checkout y panel admin.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": "24.x"
   },
   "dependencies": {
+    "compression": "^1.8.1",
     "ejs": "^3.1.10",
-    "express": "^4.21.2",
-    "express-session": "^1.18.1"
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.18.1",
+    "helmet": "^8.3.0",
+    "morgan": "^1.12.1"
   }
 }

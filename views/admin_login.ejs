@@ -4,9 +4,10 @@
 <body>
 <%- include('partials/header') %>
 
-<main>
+<main id="main-contenido">
   <section class="admin-login">
     <form method="post" class="form-reserva form-reserva--angosta">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <h1 class="section__title">Acceso administrador</h1>
       <label for="password">Contraseña</label>
       <input type="password" id="password" name="password" required autofocus>

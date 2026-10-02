@@ -2,7 +2,12 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const express = require("express");
 const session = require("express-session");
+const helmet = require("helmet");
+const compression = require("compression");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
 const db = require("./db");
+const { detalleCarrito, contarItemsCarrito } = require("./carrito");
 
 db.init();
 
@@ -11,75 +16,103 @@ const PORT = process.env.PORT || 3000;
 // La contraseña del panel solo viene de una variable de entorno: el repositorio es
 // público, así que nunca va escrita aquí ni en render.yaml. Sin ella el panel no abre.
 const ADMIN_PASSWORD = process.env.URBE_PANEL_PASSWORD || "";
+const EN_PRODUCCION = process.env.NODE_ENV === "production";
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")));
+app.set("trust proxy", 1);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        // 'unsafe-inline' en estilos: las muestras de color de producto usan
+        // style="background-color: ...", generado server-side desde la BD (no
+        // entrada de usuario). scriptSrc se mantiene estricto sin excepciones.
+        styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:"],
+        scriptSrc: ["'self'"],
+      },
+    },
+  })
+);
+app.use(compression());
+app.use(morgan(EN_PRODUCCION ? "combined" : "dev"));
+app.use(express.static(path.join(__dirname, "public"), { maxAge: EN_PRODUCCION ? "1d" : 0 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
+    name: "urbe.sid",
     secret: process.env.URBE_SECRET_KEY || "dev-secret-cambiar-en-produccion",
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 },
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: EN_PRODUCCION,
+    },
   })
 );
 
+const limitadorLogin = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+});
+
 app.use((req, res, next) => {
   if (!req.session.carrito) req.session.carrito = [];
+  if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(24).toString("hex");
   res.locals.flash = req.session.flash || null;
   delete req.session.flash;
   res.locals.formatoPrecio = formatoPrecio;
   res.locals.totalCarrito = contarItemsCarrito(req.session.carrito);
+  res.locals.csrfToken = req.session.csrfToken;
+  res.locals.urlCanonica = `${req.protocol}://${req.get("host")}${req.path}`;
   next();
 });
+
+function verificarCsrf(req, res, next) {
+  const token = req.body._csrf;
+  if (!token || token !== req.session.csrfToken) {
+    return res.status(403).render("error", {
+      titulo: "Solicitud inválida — URBE",
+      codigo: 403,
+      mensaje: "Tu sesión expiró o la solicitud no es válida. Vuelve a intentarlo.",
+    });
+  }
+  next();
+}
+
+app.use((req, res, next) => {
+  if (req.method === "POST") return verificarCsrf(req, res, next);
+  next();
+});
+
+function contrasenaValida(recibida) {
+  // Solo texto: con express.urlencoded({ extended: true }) el campo puede llegar como
+  // objeto o arreglo (password[toString]=x), y String() sobre eso truena.
+  if (!ADMIN_PASSWORD || typeof recibida !== "string") return false;
+  const esperada = Buffer.from(ADMIN_PASSWORD);
+  const entrante = Buffer.from(recibida);
+  if (esperada.length !== entrante.length) {
+    crypto.timingSafeEqual(esperada, esperada);
+    return false;
+  }
+  return crypto.timingSafeEqual(esperada, entrante);
+}
 
 function formatoPrecio(centavos) {
   return (centavos / 100).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 }
 
-function contarItemsCarrito(carrito) {
-  return carrito.reduce((total, item) => total + item.cantidad, 0);
-}
-
 function flash(req, tipo, mensaje) {
   req.session.flash = { tipo, mensaje };
-}
-
-function contrasenaValida(recibida) {
-  // Solo texto: con express.urlencoded({ extended: true }) el campo puede llegar como
-  // objeto o arreglo (password[toString]=x), y String() sobre eso truena.
-  if (typeof recibida !== "string") return false;
-  const esperada = Buffer.from(ADMIN_PASSWORD);
-  const entrante = Buffer.from(recibida);
-  return esperada.length === entrante.length && crypto.timingSafeEqual(esperada, entrante);
-}
-
-function detalleCarrito(carrito) {
-  const items = [];
-  let totalCentavos = 0;
-
-  for (const entrada of carrito) {
-    const producto = db.obtenerProducto(entrada.productoId);
-    if (!producto) continue;
-    const variante = db.obtenerVariante(entrada.productoId, entrada.talla);
-    const cantidad = Math.min(entrada.cantidad, variante ? variante.stock : 0);
-    const subtotalCentavos = producto.precio_centavos * cantidad;
-    totalCentavos += subtotalCentavos;
-    items.push({
-      productoId: producto.id,
-      nombre: producto.nombre,
-      colorMuestra: producto.color_muestra,
-      talla: entrada.talla,
-      cantidad,
-      cantidadSolicitada: entrada.cantidad,
-      stockDisponible: variante ? variante.stock : 0,
-      precioUnitarioCentavos: producto.precio_centavos,
-      subtotalCentavos,
-    });
-  }
-
-  return { items, totalCentavos };
 }
 
 function requiereAdmin(req, res, next) {
@@ -169,6 +202,10 @@ app.post("/checkout", (req, res) => {
     flash(req, "error", "Completa todos los campos para continuar.");
     return res.redirect("/checkout");
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    flash(req, "error", "Ingresa un correo electrónico válido.");
+    return res.redirect("/checkout");
+  }
 
   try {
     const pedidoId = db.crearPedido({
@@ -192,6 +229,8 @@ app.post("/checkout", (req, res) => {
     });
 
     req.session.carrito = [];
+    // Los folios son consecutivos: la confirmación solo la ve quien hizo el pedido
+    req.session.misPedidos = [...(req.session.misPedidos || []).slice(-19), pedidoId];
     res.redirect(`/confirmacion/${pedidoId}`);
   } catch (error) {
     flash(req, "error", "Uno de los productos ya no tiene stock suficiente. Revisa tu carrito.");
@@ -201,7 +240,7 @@ app.post("/checkout", (req, res) => {
 
 app.get("/confirmacion/:id", (req, res) => {
   const pedido = db.obtenerPedido(req.params.id);
-  if (!pedido) return res.redirect("/");
+  if (!pedido || !(req.session.misPedidos || []).includes(pedido.id)) return res.redirect("/");
   res.render("confirmacion", { pedido });
 });
 
@@ -210,7 +249,7 @@ app.get("/admin/login", (req, res) => {
   res.render("admin_login");
 });
 
-app.post("/admin/login", (req, res) => {
+app.post("/admin/login", limitadorLogin, (req, res) => {
   if (!ADMIN_PASSWORD) {
     flash(req, "error", "El panel está desactivado: falta configurar su contraseña en el servidor.");
     return res.redirect("/admin/login");
@@ -224,23 +263,24 @@ app.post("/admin/login", (req, res) => {
 });
 
 app.get("/admin/logout", (req, res) => {
-  req.session.admin = false;
-  res.redirect("/admin/login");
+  req.session.destroy(() => {
+    res.clearCookie("urbe.sid");
+    res.redirect("/admin/login");
+  });
 });
 
 app.get("/admin", requiereAdmin, (req, res) => {
-  const pedidos = db.obtenerPedidos().map((p) => db.obtenerPedido(p.id));
-  const totalVentasCentavos = pedidos
-    .filter((p) => p.estado !== "cancelado")
-    .reduce((total, p) => total + p.total_centavos, 0);
-  res.render("admin_dashboard", { pedidos, totalVentasCentavos });
+  const porPagina = 20;
+  const totalPedidos = db.contarPedidos();
+  const totalPaginas = Math.max(1, Math.ceil(totalPedidos / porPagina));
+  const pagina = Math.min(Math.max(1, Number(req.query.pagina) || 1), totalPaginas);
+  const pedidos = db.obtenerPedidosPagina(pagina, porPagina);
+  const totalVentasCentavos = db.obtenerTotalVentasCentavos();
+  res.render("admin_dashboard", { pedidos, totalVentasCentavos, totalPedidos, pagina, totalPaginas });
 });
 
 app.get("/admin/productos", requiereAdmin, (req, res) => {
-  const productos = db.obtenerProductos().map((p) => ({
-    ...p,
-    variantes: db.obtenerVariantes(p.id),
-  }));
+  const productos = db.obtenerProductosConVariantes();
   res.render("admin_productos", { productos });
 });
 
@@ -248,6 +288,60 @@ app.post("/admin/pedidos/:id/estado", requiereAdmin, (req, res) => {
   db.actualizarEstadoPedido(req.params.id, req.body.estado);
   flash(req, "ok", "Estado del pedido actualizado.");
   res.redirect("/admin");
+});
+
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain").send(
+    [
+      "User-agent: *",
+      "Disallow: /admin",
+      "Disallow: /carrito",
+      "Disallow: /checkout",
+      "Disallow: /confirmacion",
+      `Sitemap: ${req.protocol}://${req.get("host")}/sitemap.xml`,
+      "",
+    ].join("\n")
+  );
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  const base = `${req.protocol}://${req.get("host")}`;
+  const productos = db.obtenerProductos();
+  const urls = [`${base}/`, ...productos.map((p) => `${base}/producto/${p.id}`)];
+  const xml =
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls.map((u) => `  <url><loc>${u}</loc></url>`).join("\n") +
+    "\n</urlset>";
+  res.type("application/xml").send(xml);
+});
+
+app.use((req, res) => {
+  res.status(404).render("error", {
+    titulo: "Página no encontrada — URBE",
+    codigo: 404,
+    mensaje: "No encontramos lo que buscabas. Vuelve al catálogo.",
+  });
+});
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error(err);
+  // Si el error pasó antes de preparar las variables de la vista (por ejemplo, un formulario
+  // demasiado grande), la página de error las necesita igual
+  res.locals.flash ??= null;
+  res.locals.totalCarrito ??= 0;
+  res.locals.csrfToken ??= "";
+  res.locals.urlCanonica ??= "";
+  res.locals.formatoPrecio ??= formatoPrecio;
+  const codigo = err.status >= 400 && err.status < 500 ? err.status : 500;
+  res.status(codigo).render("error", {
+    titulo: codigo === 500 ? "Error del servidor — URBE" : "Solicitud no válida — URBE",
+    codigo,
+    mensaje: codigo === 500
+      ? "Algo salió mal de nuestro lado. Inténtalo de nuevo en un momento."
+      : "No pudimos procesar lo que enviaste. Revisa tus datos e inténtalo de nuevo.",
+  });
 });
 
 app.listen(PORT, () => {

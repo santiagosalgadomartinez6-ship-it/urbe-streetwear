@@ -1,7 +1,7 @@
 const { DatabaseSync } = require("node:sqlite");
 const path = require("node:path");
 
-const DB_PATH = path.join(__dirname, "urbe.db");
+const DB_PATH = process.env.URBE_DB_PATH || path.join(__dirname, "urbe.db");
 const db = new DatabaseSync(DB_PATH);
 
 function init() {
@@ -163,19 +163,90 @@ function obtenerPedidos() {
   return db.prepare("SELECT * FROM pedidos ORDER BY creado_en DESC").all();
 }
 
+// Trae una página de pedidos con sus items en un solo query adicional (batch por
+// IN (...)), en vez de un SELECT por pedido (evita el N+1 de obtenerPedidos().map(p => obtenerPedido(p.id))).
+function obtenerPedidosPagina(pagina, porPagina) {
+  const offset = (Math.max(1, pagina) - 1) * porPagina;
+  const pedidos = db
+    .prepare("SELECT * FROM pedidos ORDER BY creado_en DESC LIMIT ? OFFSET ?")
+    .all(porPagina, offset);
+  if (pedidos.length === 0) return [];
+
+  const ids = pedidos.map((p) => p.id);
+  const marcadores = ids.map(() => "?").join(",");
+  const items = db
+    .prepare(`SELECT * FROM pedido_items WHERE pedido_id IN (${marcadores})`)
+    .all(...ids);
+
+  const itemsPorPedido = new Map();
+  for (const item of items) {
+    if (!itemsPorPedido.has(item.pedido_id)) itemsPorPedido.set(item.pedido_id, []);
+    itemsPorPedido.get(item.pedido_id).push(item);
+  }
+
+  return pedidos.map((p) => ({ ...p, items: itemsPorPedido.get(p.id) || [] }));
+}
+
+function contarPedidos() {
+  return db.prepare("SELECT COUNT(*) AS n FROM pedidos").get().n;
+}
+
+// Total de ventas histórico (todos los pedidos no cancelados), independiente de
+// la página que se esté mostrando.
+function obtenerTotalVentasCentavos() {
+  const fila = db
+    .prepare("SELECT SUM(total_centavos) AS total FROM pedidos WHERE estado != 'cancelado'")
+    .get();
+  return fila.total || 0;
+}
+
 function actualizarEstadoPedido(id, estado) {
   db.prepare("UPDATE pedidos SET estado = ? WHERE id = ?").run(estado, id);
 }
 
+// Trae todos los productos con sus variantes en un solo query adicional (batch
+// por IN (...)), en vez de un SELECT por producto.
+function obtenerProductosConVariantes() {
+  const productos = db.prepare("SELECT * FROM productos ORDER BY id").all();
+  if (productos.length === 0) return [];
+
+  const ids = productos.map((p) => p.id);
+  const marcadores = ids.map(() => "?").join(",");
+  const variantes = db
+    .prepare(`SELECT * FROM variantes WHERE producto_id IN (${marcadores}) ORDER BY id`)
+    .all(...ids);
+
+  const variantesPorProducto = new Map();
+  for (const v of variantes) {
+    if (!variantesPorProducto.has(v.producto_id)) variantesPorProducto.set(v.producto_id, []);
+    variantesPorProducto.get(v.producto_id).push(v);
+  }
+
+  return productos.map((p) => ({ ...p, variantes: variantesPorProducto.get(p.id) || [] }));
+}
+
+// Cierra la conexión. No se usa en producción (el proceso vive mientras corre
+// el servidor), pero los tests la necesitan para poder borrar el archivo
+// temporal de la BD al terminar (en Windows no se puede eliminar un archivo
+// con un handle abierto).
+function cerrar() {
+  db.close();
+}
+
 module.exports = {
   init,
+  cerrar,
   obtenerProductos,
   obtenerCategorias,
   obtenerProducto,
+  obtenerProductosConVariantes,
   obtenerVariantes,
   obtenerVariante,
   crearPedido,
   obtenerPedido,
   obtenerPedidos,
+  obtenerPedidosPagina,
+  contarPedidos,
+  obtenerTotalVentasCentavos,
   actualizarEstadoPedido,
 };

@@ -4,7 +4,7 @@
 <body>
 <%- include('partials/header') %>
 
-<main>
+<main id="main-contenido">
   <section class="admin-dashboard">
     <div class="admin-dashboard__header">
       <h1 class="section__title">Pedidos</h1>
@@ -15,7 +15,7 @@
     </div>
 
     <div class="stats stats--admin">
-      <div class="stats__item"><strong><%= pedidos.length %></strong><span>pedidos totales</span></div>
+      <div class="stats__item"><strong><%= totalPedidos %></strong><span>pedidos totales</span></div>
       <div class="stats__item"><strong><%= formatoPrecio(totalVentasCentavos) %></strong><span>ventas acumuladas</span></div>
     </div>
 
@@ -23,14 +23,14 @@
       <table class="tabla-admin">
         <thead>
           <tr>
-            <th>Folio</th>
-            <th>Cliente</th>
-            <th>Contacto</th>
-            <th>Productos</th>
-            <th>Total</th>
-            <th>Pago</th>
-            <th>Fecha</th>
-            <th>Estado</th>
+            <th scope="col">Folio</th>
+            <th scope="col">Cliente</th>
+            <th scope="col">Contacto</th>
+            <th scope="col">Productos</th>
+            <th scope="col">Total</th>
+            <th scope="col">Pago</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +52,9 @@
             <td><%= p.creado_en.slice(0, 10) %></td>
             <td>
               <form method="post" action="/admin/pedidos/<%= p.id %>/estado" class="form-estado">
-                <select name="estado" onchange="this.form.submit()">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <label class="visually-hidden" for="estado-<%= p.id %>">Estado del pedido #<%= p.id %></label>
+                <select id="estado-<%= p.id %>" name="estado" class="js-auto-submit">
                   <% ["pendiente", "enviado", "entregado", "cancelado"].forEach(function(estado) { %>
                   <option value="<%= estado %>" <%= p.estado === estado ? "selected" : "" %>><%= estado %></option>
                   <% }); %>
@@ -67,6 +69,22 @@
         </tbody>
       </table>
     </div>
+
+    <% if (totalPaginas > 1) { %>
+    <nav class="paginacion-admin" aria-label="Paginación de pedidos">
+      <% if (pagina > 1) { %>
+      <a href="?pagina=<%= pagina - 1 %>" class="btn btn--chico">Anterior</a>
+      <% } else { %>
+      <span class="btn btn--chico btn--deshabilitado" aria-disabled="true">Anterior</span>
+      <% } %>
+      <span class="paginacion-admin__info">Página <%= pagina %> de <%= totalPaginas %></span>
+      <% if (pagina < totalPaginas) { %>
+      <a href="?pagina=<%= pagina + 1 %>" class="btn btn--chico">Siguiente</a>
+      <% } else { %>
+      <span class="btn btn--chico btn--deshabilitado" aria-disabled="true">Siguiente</span>
+      <% } %>
+    </nav>
+    <% } %>
   </section>
 </main>
 

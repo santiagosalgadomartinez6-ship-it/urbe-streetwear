@@ -4,7 +4,7 @@
 <body>
 <%- include('partials/header') %>
 
-<main>
+<main id="main-contenido">
   <section class="hero">
     <p class="hero__eyebrow">Streetwear urbano</p>
     <h1 class="hero__title">VISTE SIN<br>PEDIR PERMISO</h1>
@@ -22,7 +22,7 @@
 
     <div class="grid-productos">
       <% productos.forEach(function(p) { %>
-      <a href="/producto/<%= p.id %>" class="tarjeta-producto">
+      <a href="/producto/<%= p.id %>" class="tarjeta-producto reveal">
         <div class="tarjeta-producto__muestra" style="background-color: <%= p.color_muestra %>;">
           <span class="tarjeta-producto__categoria"><%= p.categoria %></span>
         </div>

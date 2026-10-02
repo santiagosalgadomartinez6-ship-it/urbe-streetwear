@@ -1,6 +1,10 @@
+<a href="#main-contenido" class="skip-link">Saltar al contenido</a>
 <header class="nav">
   <a href="/" class="nav__brand">URBE</a>
-  <nav class="nav__links">
+  <button type="button" class="nav__toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Abrir menú">
+    <span></span><span></span><span></span>
+  </button>
+  <nav class="nav__links" id="nav-links">
     <a href="/?categoria=Playeras">Playeras</a>
     <a href="/?categoria=Hoodies">Hoodies</a>
     <a href="/?categoria=Gorras">Gorras</a>
@@ -13,7 +17,10 @@
 </header>
 
 <% if (flash) { %>
-<div class="flash-stack">
-  <div class="flash flash--<%= flash.tipo %>"><%= flash.mensaje %></div>
+<div class="flash-stack" role="status" aria-live="polite">
+  <div class="flash flash--<%= flash.tipo %>">
+    <span><%= flash.mensaje %></span>
+    <button type="button" class="flash__cerrar" aria-label="Cerrar mensaje">×</button>
+  </div>
 </div>
 <% } %>

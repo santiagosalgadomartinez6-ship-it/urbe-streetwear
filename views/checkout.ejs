@@ -4,12 +4,13 @@
 <body>
 <%- include('partials/header') %>
 
-<main>
+<main id="main-contenido">
   <section class="checkout">
     <h1 class="section__title">Finalizar compra</h1>
 
     <div class="checkout__grid">
       <form method="post" action="/checkout" class="form-reserva">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <label for="nombre">Nombre completo</label>
         <input type="text" id="nombre" name="nombre" required>
 

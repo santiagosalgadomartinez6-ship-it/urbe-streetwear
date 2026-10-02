@@ -4,6 +4,10 @@
   --ink: #0a0a0a;
   --muted: #6b6b70;
   --accent: #ff5f00;
+  /* Variante de --accent para texto/fondos con texto encima: ~4.62:1 sobre
+     blanco, cumple WCAG AA (4.5:1) para texto normal. --accent (3.05:1) se
+     mantiene para usos de texto grande/decorativo ya conformes. */
+  --accent-texto: #cc4a00;
   --border: #e5e5e2;
   --radius: 10px;
 }
@@ -18,6 +22,59 @@ body {
   color: var(--ink);
   font-family: "Inter", system-ui, sans-serif;
   line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -60px;
+  background: var(--ink);
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 700;
+  z-index: 100;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* Scroll reveal — visible por defecto; JS añade el estado oculto solo si puede animarlo */
+.reveal {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal--pending {
+  opacity: 0;
+  transform: translateY(24px);
 }
 
 h1, h2, h3, h4 {
@@ -68,11 +125,66 @@ a {
   position: relative;
 }
 
+.nav__toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nav__toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  margin: 0 auto;
+  background: var(--ink);
+}
+
+@media (max-width: 800px) {
+  .nav__toggle {
+    display: flex;
+    position: relative;
+    z-index: 95;   /* encima del panel abierto, para poder cerrarlo con el mismo botón */
+  }
+
+  .nav__links {
+    position: fixed;
+    inset: 0 0 0 30%;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2rem;
+    padding: 2rem;
+    background: var(--bg);
+    border-left: 2px solid var(--ink);
+    transform: translateX(100%);
+    visibility: hidden;   /* cerrado, que el teclado no entre a enlaces que no se ven */
+    transition: transform 0.25s ease, visibility 0.25s;
+    z-index: 90;
+  }
+
+  .nav__links.is-open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .nav__links a {
+    font-size: 1.1rem;
+  }
+}
+
 .nav__badge {
   position: absolute;
   top: -10px;
   right: -14px;
-  background: var(--accent);
+  background: var(--accent-texto);
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -113,7 +225,7 @@ a {
 }
 
 .btn--peligro {
-  background: var(--accent);
+  background: var(--accent-texto);
   color: #fff;
 }
 
@@ -127,10 +239,20 @@ a {
 }
 
 .flash {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 0.85rem 1.1rem;
   border-radius: var(--radius);
   font-size: 0.9rem;
   font-weight: 600;
+  animation: flash-in 0.2s ease;
+}
+
+@keyframes flash-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
 }
 
 .flash--error {
@@ -141,6 +263,16 @@ a {
 .flash--ok {
   background: #111;
   color: #fff;
+}
+
+.flash__cerrar {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
 }
 
 /* Hero */
@@ -154,7 +286,7 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.75rem;
-  color: var(--accent);
+  color: var(--accent-texto);
   font-weight: 700;
   margin-bottom: 1rem;
 }
@@ -256,7 +388,7 @@ main > section, section.checkout, section.carrito, section.admin-dashboard, sect
 }
 
 .tarjeta-producto__precio {
-  color: var(--accent);
+  color: var(--accent-texto);
   font-weight: 700;
 }
 
@@ -430,6 +562,7 @@ main > section, section.checkout, section.carrito, section.admin-dashboard, sect
 .checkout__linea {
   display: flex;
   justify-content: space-between;
+  gap: 1rem;   /* en celular el nombre largo se pegaba al precio */
   font-size: 0.9rem;
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
@@ -532,6 +665,7 @@ main > section, section.checkout, section.carrito, section.admin-dashboard, sect
 }
 
 .tabla-admin-wrap {
+  position: relative;   /* las etiquetas ocultas de la tabla se quedan dentro y no ensanchan la página */
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -561,6 +695,24 @@ main > section, section.checkout, section.carrito, section.admin-dashboard, sect
   opacity: 0.5;
 }
 
+.paginacion-admin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.paginacion-admin__info {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.btn--deshabilitado {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .pill-stock {
   display: inline-block;
   background: var(--surface);
@@ -572,9 +724,9 @@ main > section, section.checkout, section.carrito, section.admin-dashboard, sect
 }
 
 .pill-stock--agotado {
-  background: var(--accent);
+  background: var(--accent-texto);
   color: #fff;
-  border-color: var(--accent);
+  border-color: var(--accent-texto);
 }
 
 .form-estado select {
@@ -617,18 +769,40 @@ main > section, section.checkout, section.carrito, section.admin-dashboard, sect
   opacity: 0.8;
 }
 
+/* Error pages */
+.error-pagina {
+  text-align: center;
+  padding: 5rem 2rem;
+}
+
+.error-pagina__codigo {
+  display: block;
+  font-family: "Archivo Black", sans-serif;
+  font-size: clamp(3rem, 12vw, 6rem);
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.error-pagina p {
+  color: var(--muted);
+  text-transform: none;
+  margin: 1rem 0 2rem;
+}
+
 /* Responsive */
 @media (max-width: 800px) {
   .ficha-producto, .checkout__grid {
     grid-template-columns: 1fr;
   }
 
+  /* El precio ocupa las dos primeras columnas: en la de 48 px no cabía y se encimaba con Eliminar */
   .fila-carrito {
-    grid-template-columns: 48px 1fr;
+    grid-template-columns: 48px 1fr auto;
     grid-template-areas:
-      "muestra info"
-      "cantidad cantidad"
-      "subtotal eliminar";
+      "muestra info info"
+      "cantidad cantidad cantidad"
+      "subtotal subtotal eliminar";
   }
 
   .fila-carrito__muestra { grid-area: muestra; width: 48px; height: 48px; }

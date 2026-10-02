@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><%- include('partials/head', { titulo: titulo }) %></head>
+<body>
+<%- include('partials/header') %>
+
+<main id="main-contenido">
+  <section class="error-pagina">
+    <span class="error-pagina__codigo"><%= codigo %></span>
+    <h1>Ups.</h1>
+    <p><%= mensaje %></p>
+    <a href="/" class="btn btn--primary">Volver al inicio</a>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
+</body>
+</html>
